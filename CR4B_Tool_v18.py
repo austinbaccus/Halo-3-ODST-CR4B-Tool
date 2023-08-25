@@ -12567,39 +12567,48 @@ def Start_CR4B_Tool():
         
     # bpy.ops.node.button()
 
-
 #classes for the add-on
-
-
-
-
 
 #Add-On Properties
 class CR4BAddonPreferences(bpy.types.AddonPreferences):
     bl_idname = __name__
+
+    export_dir_path = "C:\\Users\\gunra\\source\\repos\\austinbaccus\\Halo-3-ODST-CR4B-Tool\\Export Assets Here\\"
+    shader_dir_path = "C:\\Users\\gunra\\source\\repos\\austinbaccus\\Halo-3-ODST-CR4B-Tool\\CR4BTool_shaders.blend"
+    python_modules_path = "C:\\Users\\gunra\\source\\repos\\austinbaccus\\Halo-3-ODST-CR4B-Tool\\Python_Modules\\"
+    h3_tags_path = "X:\\SteamLibrary\\steamapps\\common\\H3EK\\tags\\"
+    h3odst_tags_path = "X:\\SteamLibrary\\steamapps\\common\\H3ODSTEK\\tags\\"
+    hr_tags_path = "X:\\SteamLibrary\\steamapps\\common\\HREK\\tags\\"
+
     export_path: bpy.props.StringProperty(
         name="Halo Asset Export Path",
-        subtype='FILE_PATH'
+        subtype='FILE_PATH',
+        default=export_dir_path
     )
     node_group_file: bpy.props.StringProperty(
         name="Shader .blend File",
-        subtype='FILE_PATH'
+        subtype='FILE_PATH',
+        default=shader_dir_path
     )
     halo3_tag_path: bpy.props.StringProperty(
         name="Halo 3 Tags",
-        subtype='FILE_PATH'
+        subtype='FILE_PATH',
+        default=h3_tags_path
     )
     odst_tag_path: bpy.props.StringProperty(
         name="Halo 3: ODST Tags",
-        subtype='FILE_PATH'
+        subtype='FILE_PATH',
+        default=h3odst_tags_path
     )
     reach_tag_path: bpy.props.StringProperty(
         name="Halo Reach Tags",
-        subtype='FILE_PATH'
+        subtype='FILE_PATH',
+        default=hr_tags_path
     )
     py360convert_path: bpy.props.StringProperty(
         name="Python_Modules",
-        subtype='DIR_PATH'
+        subtype='DIR_PATH',
+        default=python_modules_path
     )
 
     def draw(self, context):
@@ -13589,7 +13598,6 @@ class CR4B_FileListUI(bpy.types.UIList):
         file_name_without_extension = os.path.splitext(item.name)[0] # This will now have the modified name
         layout.prop(item, "select", text=file_name_without_extension)
 
-
 #Panel Properties
 class CR4BAddonPanel(bpy.types.Panel):
     bl_label = "CR4B Tool"
@@ -13601,17 +13609,14 @@ class CR4BAddonPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         
-
         #Area on Panel for Appending node groups
         layout.row().label(text="Install Modules [Run as Admin]")
         layout.operator("myaddon.install_py360convert")
         layout.row().label(text="Only required once ever", icon='INFO')
         
-        
-        # layout.row().label(text="Append CR4BTool_shader Groups")
-        # layout.operator("test_addon.append_node_group", text="Append Node Groups")
-        # layout.row().label(text="Must be done once per Scene", icon='INFO')
-        
+        layout.row().label(text="Convert to real size")
+        layout.operator("test_addon.convert_to_size", text="Convert to real size")
+        layout.row().label(text="Scales selected object by 0.0304", icon='INFO')
         
         layout.row().label(text="")
         
@@ -13667,28 +13672,15 @@ class CR4BAddonPanel(bpy.types.Panel):
             split.label(text="Progress:")
             split.prop(context.scene, "cr4b_progress", text="", slider=True)
 
+class TestAddonConvertToSize(bpy.types.Operator):
+    bl_idname = "test_addon.convert_to_size"
+    bl_label = "Convert to real size"
 
-
-#class for appending node groups using button
-# class TestAddonAppendNodeGroup(bpy.types.Operator):
-    # bl_idname = "test_addon.append_node_group"
-    # bl_label = "Append Node Group"
-
-    # def execute(self, context):
-        # filepath = context.preferences.addons[__name__].preferences.node_group_file
-        # node_group_name = "[APPEND] Halo Shader Categories" # replace with the name of your node group
-
-        # if node_group_name in bpy.data.node_groups:
-            # return {'CANCELLED'}
-
-        # with bpy.data.libraries.load(filepath) as (data_from, data_to):
-            # data_to.node_groups = [node_group_name]
-
-        # # for node_group in data_to.node_groups:
-            # # bpy.context.scene.node_tree.nodes.new("ShaderNodeGroup")
-            # # bpy.context.scene.node_tree.nodes.active.node_tree = node_group
-
-        # return {'FINISHED'}
+    def execute(self, context):
+        scale = 0.0304
+        bpy.context.active_object.scale = (scale, scale, scale)
+        bpy.context.active_object.location = (scale, scale, scale)
+        return {'FINISHED'}
 
 
 def update_halo3_tag_path(self, context):
@@ -13826,7 +13818,7 @@ def update_py360convert_path(self, context):
 def register():
                     #Add-on Properties
     bpy.utils.register_class(CR4BAddonPreferences)
-    #bpy.utils.register_class(TestAddonAppendNodeGroup)
+    bpy.utils.register_class(TestAddonConvertToSize)
     bpy.types.Scene.halo3_tag_path = bpy.props.StringProperty(name="Halo 3 Tags Directory", default="", update=update_halo3_tag_path)
     bpy.types.Scene.odst_tag_path = bpy.props.StringProperty(name="Halo 3: ODST Tags Directory", default="", update=update_odst_tag_path)
     bpy.types.Scene.reach_tag_path = bpy.props.StringProperty(name="Halo Reach Tags Directory", default="", update=update_reach_tag_path)
@@ -13965,8 +13957,7 @@ def unregister():
                     
     #CR4B Tool Properties
     bpy.utils.unregister_class(CR4BAddonPreferences)
-
-    #bpy.utils.unregister_class(TestAddonAppendNodeGroup)
+    bpy.utils.unregister_class(TestAddonConvertToSize)
     bpy.utils.unregister_class(StartCR4BTool)
     bpy.utils.unregister_class(CR4BAddonPanel)
 
