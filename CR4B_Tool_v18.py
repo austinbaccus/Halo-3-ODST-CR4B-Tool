@@ -12115,24 +12115,28 @@ def Start_CR4B_Tool():
                             
                             #ALPHA_TEST_MAP
                             if((Shader_Type == 0 or Shader_Type == 2 or Shader_Type == 4) and ShaderItem.alpha_test_option != 0 and ShaderItem.bitmap_list[bitm].type == "alpha_test_map" and (ShaderItem.alpha_test_option == 1 or ShaderItem.specular_mask_option == 2)):
-                                # Get the image data from the Image Texture Node
-                                image_data = ImageTextureNodeList[bitm + 1].image
+                                try:
+                                    # Get the image data from the Image Texture Node
+                                    image_data = ImageTextureNodeList[bitm + 1].image
 
-                                # Convert the pixels to a NumPy array
-                                pixels = np.array(image_data.pixels[:])
+                                    # Convert the pixels to a NumPy array
+                                    pixels = np.array(image_data.pixels[:])
 
-                                # Reshape the array to separate the RGBA channels
-                                pixels = pixels.reshape((-1, 4))
+                                    # Reshape the array to separate the RGBA channels
+                                    pixels = pixels.reshape((-1, 4))
 
-                                # Check if all alpha values are 1
-                                all_alpha_one = np.all(pixels[:, 3] == 1.0)
+                                    # Check if all alpha values are 1
+                                    all_alpha_one = np.all(pixels[:, 3] == 1.0)
 
-                                # Connect the appropriate output
-                                if all_alpha_one:
-                                    pymat_copy.node_tree.links.new(AlphaTestGroup.inputs["alpha_test_map.a"], ImageTextureNodeList[bitm + 1].outputs["Color"])
-                                else:
-                                    pymat_copy.node_tree.links.new(AlphaTestGroup.inputs["alpha_test_map.a"], ImageTextureNodeList[bitm + 1].outputs["Alpha"])     
-                                    
+                                    # Connect the appropriate output
+                                    if all_alpha_one:
+                                        pymat_copy.node_tree.links.new(AlphaTestGroup.inputs["alpha_test_map.a"], ImageTextureNodeList[bitm + 1].outputs["Color"])
+                                    else:
+                                        pymat_copy.node_tree.links.new(AlphaTestGroup.inputs["alpha_test_map.a"], ImageTextureNodeList[bitm + 1].outputs["Alpha"])     
+                                except Exception:
+                                    print("There was a bitmap curve data error! Not normal, please look into it.")
+
+                                   
                             #SPECULAR_MASK_TEXTURE
                             if((Shader_Type == 0 or Shader_Type == 4) and ShaderItem.bitmap_list[bitm].type == "specular_mask_texture" and ShaderItem.specular_mask_option == 2 and ShaderItem.albedo_option != 2):
                                 pymat_copy.node_tree.links.new(AlbedoGroup.inputs["base_map.a/specular_mask"], ImageTextureNodeList[bitm + 1].outputs["Alpha"])                
@@ -13598,16 +13602,28 @@ class CR4B_FileListUI(bpy.types.UIList):
         file_name_without_extension = os.path.splitext(item.name)[0] # This will now have the modified name
         layout.prop(item, "select", text=file_name_without_extension)
 
-#Panel Properties
-class CR4BAddonPanel(bpy.types.Panel):
-    bl_label = "CR4B Tool"
-    bl_idname = "OBJECT_PT_CR4B_Tool"
+#import file panel
+class CR4BImportPanel(bpy.types.Panel):
+    bl_label = "CR4B Import Tool"
+    bl_idname = "OBJECT_PT_CR4B_Import_Tool"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'CR4B Tool'
+    bl_order = 2
+
+    @classmethod
+    def poll(cls, context):
+        return context.scene.cr4b_show_import_menu
 
     def draw(self, context):
         layout = self.layout
+
+        # Conditional display of file scanning and importing options
+        if context.scene.cr4b_show_import_menu:
+            layout.row().label(text="Scan for Files:")
+            row = layout.row(align=True)
+            row.operator("cr4b.scan_scenario_structure_bsp", text="Levels")
+            row.operator("cr4b.scan_render_model", text="Models/Props")
         
         #Area on Panel for Appending node groups
         layout.row().label(text="Install Modules [Run as Admin]")
@@ -13633,26 +13649,59 @@ class CR4BAddonPanel(bpy.types.Panel):
                 row.operator("cr4b.scan_scenario_structure_bsp", text="Level Geometry")
                 row.operator("cr4b.scan_render_model", text="Models/Props")
 
-                # Check if the last selected tag is one of the desired options
-                if context.scene.cr4b_last_tag in ("Halo 3", "Halo 3: ODST"):
-                    # Create a box for the header
-                    box = layout.box()
-                    # Create a row for the header
-                    header_row = box.row()
-                    # Align the label to the center of the row
-                    header_row.alignment = 'CENTER'
-                    # Add the label with the text of the last selected tag
-                    header_row.label(text= (context.scene.cr4b_last_tag + context.scene.cr4b_header_suffix))
+            # Check if the last selected tag is one of the desired options
+            if context.scene.cr4b_last_tag in ("Halo 3", "Halo 3: ODST"):
+                # Create a box for the header
+                box = layout.box()
+                # Create a row for the header
+                header_row = box.row()
+                # Align the label to the center of the row
+                header_row.alignment = 'CENTER'
+                # Add the label with the text of the last selected tag
+                header_row.label(text= (context.scene.cr4b_last_tag + context.scene.cr4b_header_suffix))
 
-                # File list section
-                layout.template_list(
-                    "CR4B_FileListUI", "",
-                    context.scene, "cr4b_file_list",
-                    context.scene, "cr4b_file_list_index",
-                    rows=5
-                )
+            # File list section
+            layout.template_list(
+                "CR4B_FileListUI", "",
+                context.scene, "cr4b_file_list",
+                context.scene, "cr4b_file_list_index",
+                rows=5
+            )
 
-                layout.operator("cr4b.import_file", text="Import File")
+            layout.operator("cr4b.import_file", text="Import File")
+
+#Panel Properties
+class CR4BAddonPanel(bpy.types.Panel):
+    bl_label = "CR4B Tool"
+    bl_idname = "OBJECT_PT_CR4B_Tool"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'CR4B Tool'
+    bl_order = 1
+
+    def draw(self, context):
+        layout = self.layout
+        
+
+        #Area on Panel for Appending node groups
+        layout.row().label(text="Install Modules [Run as Admin]")
+        layout.operator("myaddon.install_py360convert")
+        layout.row().label(text="Only required once ever", icon='INFO')
+        
+        
+        # layout.row().label(text="Append CR4BTool_shader Groups")
+        # layout.operator("test_addon.append_node_group", text="Append Node Groups")
+        # layout.row().label(text="Must be done once per Scene", icon='INFO')
+        
+        
+        layout.row().label(text="")
+        
+        # Conditional display based on selected tag
+        if context.scene.tag_dropdown in ("Halo 3", "Halo 3: ODST"):
+            # Checkbox property
+            layout.prop(context.scene, "cr4b_show_import_menu")
+            layout.row().label(text="Needs Halo Blender Toolset", icon='INFO')
+
         
         #Area on Panel for Starting CR4B Tool
         layout.row().label(text="Select Tags to use")
@@ -13847,6 +13896,7 @@ def register():
     bpy.types.Scene.cr4b_header_suffix = bpy.props.StringProperty(default="")
     
     
+    
                     #Panel Properties
     #Light Tool Properties
     #bpy.utils.register_class(SpotLightProperties)
@@ -13902,6 +13952,8 @@ def register():
         default=False
     )
     
+    #import model panel
+    bpy.utils.register_class(CR4BImportPanel)
     bpy.utils.register_class(CR4BAddonPanel)
     bpy.utils.register_class(StartCR4BTool)
 
@@ -13960,6 +14012,7 @@ def unregister():
     bpy.utils.unregister_class(TestAddonConvertToSize)
     bpy.utils.unregister_class(StartCR4BTool)
     bpy.utils.unregister_class(CR4BAddonPanel)
+    bpy.utils.unregister_class(CR4BImportPanel)
 
 if __name__ == "__main__":
     register()
